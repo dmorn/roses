@@ -7,6 +7,8 @@ defmodule Roses.Massive do
   @base_url "https://amazon-massive-nlu-dataset.s3.amazonaws.com/"
   @dataset_file "amazon-massive-dataset-1.0.tar.gz"
 
+  @dataset_name "amazon-massive-dataset"
+
   @all_langs [
     "af-ZA",
     "am-ET",
@@ -61,38 +63,43 @@ defmodule Roses.Massive do
     "zh-TW"
   ]
 
-  alias Scidata.Utils
+  def take_paths() do
+    cached =
+      @all_langs
+      |> Enum.map(&path/1)
+      |> Enum.map(&File.exists?/1)
+      |> Enum.all?()
 
-  # TODO: this is sub-optimal: the whole dataset is loaded into memory by the Utils.get! function.
-  # we would rather store the dataset somewhere and create a lazy function that is capable of retriving it from there instead.
-  def download() do
+    unless cached do
+      :ok = download()
+    end
+
+    @all_langs
+    |> Enum.map(fn lang -> {lang, path(lang)} end)
+  end
+
+  defp path(lang) do
+    Path.join([cache_dir(), "1.0", "data", lang <> ".jsonl"])
+  end
+
+  defp download() do
     (@base_url <> @dataset_file)
-    |> Utils.get!()
+    |> Tesla.get!()
     |> Map.get(:body)
-    |> Stream.map(fn {path, content} -> {IO.chardata_to_string(path), content} end)
-    |> Stream.filter(fn {path, _content} -> String.ends_with?(path, ".jsonl") end)
-    |> Stream.map(fn {path, content} -> {String.trim_leading(path, "1.0/data/"), content} end)
-    |> Stream.filter(fn {path, _content} -> not String.starts_with?(path, "._") end)
-    |> Stream.map(fn {path, content} -> {String.trim_trailing(path, ".jsonl"), content} end)
-    |> Stream.map(fn {path, content} ->
-      content =
-        content
-        |> String.split("\n")
-        |> Enum.map(&Jason.decode!/1)
-        |> Enum.map(&Map.get(&1, "utt"))
-
-      {path, content}
-    end)
-    |> Enum.into([])
+    |> extract()
   end
 
-  def take(dataset, languages) do
-    dataset
-    |> Keyword.take(languages)
-    |> Enum.map(fn {_k, v} -> v end)
+  defp extract(body) do
+    File.mkdir_p!(cache_dir())
+
+    dir =
+      cache_dir()
+      |> String.to_charlist()
+
+    :ok = :erl_tar.extract({:binary, body}, [:compressed, {:cwd, dir}])
   end
 
-  def take_all(dataset) do
-    take(dataset, @all_langs)
+  defp cache_dir() do
+    Path.join([System.tmp_dir!(), @dataset_name])
   end
 end
