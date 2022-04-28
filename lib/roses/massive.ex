@@ -63,22 +63,21 @@ defmodule Roses.Massive do
     "zh-TW"
   ]
 
-  def take_paths() do
+  def ensure_downloaded() do
     cached =
-      @all_langs
+      langs()
       |> Enum.map(&path/1)
       |> Enum.map(&File.exists?/1)
       |> Enum.all?()
 
-    unless cached do
-      :ok = download()
-    end
-
-    @all_langs
-    |> Enum.map(fn lang -> {lang, path(lang)} end)
+    unless cached, do: download()
+    :ok
   end
 
-  defp path(lang) do
+  def langs(), do: @all_langs
+  def paths(), do: Enum.map(langs(), &path/1)
+
+  def path(lang) do
     Path.join([cache_dir(), "1.0", "data", lang <> ".jsonl"])
   end
 
