@@ -6,6 +6,7 @@ alias TeleFlow.Collector.FS
 require Logger
 
 output = "massive_flow.html"
+n_lang = 5
 
 Logger.info("Ensuring MASSIVE dataset is downloaded")
 Roses.Massive.ensure_downloaded()
@@ -16,11 +17,11 @@ collector = FS.new(id)
 
 flow =
   Roses.Massive.langs()
-  |> Enum.take(1)
+  |> Enum.take(n_lang)
   |> Roses.Flow.from_languages()
   |> TeleFlow.attach(collector, id)
 
-Logger.info("Executing Flow")
+Logger.info("Executing Flow with #{n_lang} language sources")
 Flow.run(flow)
 
 Logger.info("Encoding plot in #{output}")
