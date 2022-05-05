@@ -22,10 +22,8 @@ defmodule Roses.MixProject do
   defp deps do
     [
       {:flow, "~> 1.2.0"},
-      {:jason, "~> 1.3"},
       {:tesla, "~> 1.4"},
-      {:vega_lite, "~> 0.1.4"},
-      {:flow_reporter, git: "https://github.com/dmorn/flow_reporter.git"}
+      {:teleflow, git: "https://github.com/dmorn/teleflow.git"}
     ]
   end
 end

@@ -1,31 +1,33 @@
 alias VegaLite, as: Vl
-alias Flow.Reporter
-alias Flow.Reporter.Plot
-alias Flow.Reporter.Stats
+alias TeleFlow
+alias TeleFlow.Reporter.Plot
+alias TeleFlow.Collector.FS
 
 require Logger
+
+output = "massive_flow.html"
 
 Logger.info("Ensuring MASSIVE dataset is downloaded")
 Roses.Massive.ensure_downloaded()
 
 Logger.info("Initializing and instrumenting Flow")
-id = Reporter.uniq_event_prefix()
-collector = Stats.new(id)
+id = TeleFlow.uniq_event_prefix()
+collector = FS.new(id)
+
 flow =
   Roses.Massive.langs()
   |> Enum.take(1)
   |> Roses.Flow.from_languages()
-  |> Reporter.attach(collector, id)
+  |> TeleFlow.attach(collector, id)
 
 Logger.info("Executing Flow")
 Flow.run(flow)
 
-output = "massive_flow.html"
 Logger.info("Encoding plot in #{output}")
 
-spans = Stats.spans_stream(collector)
+spans = FS.stream_stop_events(collector)
 
 Vl.new(width: 960, height: 540)
-|> Plot.encode_spans(spans)
+|> Plot.encode_stop_events(spans)
 |> Vl.mark(:line)
 |> Vl.Export.save!(output)
